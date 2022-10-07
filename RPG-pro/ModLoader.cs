@@ -53,7 +53,7 @@ namespace RPG
             Assembly a = Assembly.GetEntryAssembly();
             foreach (var assembly in assemblies)
             {
-                if (assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Mod))).Count() == 0)
+                if (assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(RPGMod))).Count() == 0)
                 {
                     MessageBox.Show("加载错误: " + assembly.GetName().Name + " 此Mod需要一个Mod类");
                     continue;
@@ -63,9 +63,9 @@ namespace RPG
                 {
                     if (type.IsSubclassOf(typeof(Item))) LoadItem(type);
                     if (type.IsSubclassOf(typeof(NPC))) LoadNPC(type);
-                    if (type.IsSubclassOf(typeof(Mod)))
+                    if (type.IsSubclassOf(typeof(RPGMod)))
                     {
-                        var mod = Activator.CreateInstance(type) as Mod;
+                        var mod = Activator.CreateInstance(type) as RPGMod;
                         mod.OnLoad();
                         mods.Add(mod);
                     }
@@ -108,13 +108,13 @@ namespace RPG
             ItemLoader.ItemList.Add((int)(ItemType.GetField("itemType").GetValue(obj)), obj);
             if (obj.AddRecipe().Item1) ItemLoader.Recipes.Add(obj.AddRecipe().Item2);
         }
-        public static List<Mod> mods = new List<Mod>();
+        public static List<RPGMod> mods = new List<RPGMod>();
     }
     public static class ContentInstance<T> where T : class
     {
         public static T Instance { get; private set; }
     }
-    public class Mod
+    public class RPGMod
     {
         public string DisplayName = Assembly.GetEntryAssembly().GetName().Name;
         public virtual void OnLoad()
@@ -128,7 +128,7 @@ namespace RPG
     }
     public class ModUI
     {
-        public static void AppendModForm(Mod mod, ModForm modForm)
+        public static void AppendModForm(RPGMod mod, ModForm modForm)
         {
             modForms.Add((modForm, ModLoader.mods.FindIndex(m => m.GetType() == mod.GetType())));
         }
