@@ -7,7 +7,7 @@ using RPG;
 
 namespace RPG.NPCs
 {
-    public class Slime : NPC
+    public class Slime : RPGNPC
     {
         public override void SetStaticDefaults()
         {

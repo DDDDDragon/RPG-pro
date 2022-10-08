@@ -1,8 +1,14 @@
 ﻿using Microsoft.VisualBasic.Logging;
+using RPG;
+using RPG_pro.Basics.Extensions;
+using RPG_pro.Basics.Interfaces;
+using RPG_pro.Basics.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,89 +16,113 @@ namespace RPG_pro.Basics.Mods
 {
     internal class ModContent
     {
-        private static readonly Dictionary<string, LocalMod> modsDirCache = new();
-        private static List<string> readFailures = new();
-        internal static Dictionary<string, bool> ModsEnabled = new();
-        private readonly Dictionary<string, Mod> loadedMod = new();
-        public IReadOnlyDictionary<string, Mod> LoadedMods => loadedMod;
-        internal static void TryLoadMods(CancellationToken token)
+        static Dictionary<string, Mod> LoadedMods = new();
+        private List<ModFile> FindMods()
         {
-            Task.Run(() =>
+            List<string> possible = new();
+            List<ModFile> mods = new();
+            Utils_IO.FindFiles(possible, GameInfos.ModPath, s => s.EndsWith("rpgmod"));
+            possible.ForEach(file =>
             {
-                LoadMods(token);
-            }, CancellationToken.None);
+                ModFile modFile = new(file);
+                modFile.Open().Dispose();
+                if (!modFile.Damaged)
+                {
+                    mods.Add(modFile);
+                }
+            });
+            return mods;
         }
-        private static void LoadMods(CancellationToken token)
+        private static void LoadMods(List<ModFile> modFiles, CancellationToken token)
         {
-            var localmods = FindMods();
-        }
-        internal static LocalMod[] FindMods()
-        {
-            Directory.CreateDirectory(GameInfos.ModPath);
-            List<LocalMod> localMods = new();
-            HashSet<string> names = new();
-            DeleteTemporaryFiles();
-            string[] files = Directory.GetFiles(GameInfos.GamePath, "*.rpgmod", SearchOption.TopDirectoryOnly);
-            for (int i = 0; i < files.Length; i++)
+            ModFile Loading = null;
+            try
             {
-                AttemptLoadMod(files[i], ref localMods, ref names);
+                modFiles.ForEach(modfile =>
+                {
+                    Loading = modfile;
+                    LoadMod(modfile);
+                });
             }
-            return localMods.OrderBy(localmod => localmod.Name, StringComparer.InvariantCulture).ToArray();
-        }
-        private static void DeleteTemporaryFiles()
-        {
-            foreach (string path in GetTemporaryFiles())
+            catch when (token.IsCancellationRequested)
             {
-                Logger.Info("Cleaning up leftover temporary file " + Path.GetFileName(path));
-                try
-                {
-                    File.Delete(path);
-                }
-                catch (Exception e)
-                {
-                    Logger.Error("Could not delete leftover temporary file " + Path.GetFileName(path), e);
-                }
+                return;
+            }
+            catch (Exception e)
+            {
+                Logger.Warn($"An exception was encountered during loading {Loading?.Name ?? "[Unknow]"}", e);
             }
         }
-        private static IEnumerable<string> GetTemporaryFiles()
+        internal static void PackegMods()
         {
-            return Directory.GetFiles(GameInfos.ModPath, "*.rpgmod.tmp", SearchOption.TopDirectoryOnly);
-        }
-        private static bool AttemptLoadMod(string fileName, ref List<LocalMod> mods, ref HashSet<string> names)
-        {
-            DateTime lastModified = File.GetLastWriteTime(fileName);
-            if (!modsDirCache.TryGetValue(fileName, out LocalMod mod) || mod.lastModified != lastModified)
+            if(!Directory.Exists(GameInfos.ModSourcePath))
             {
-                try
+                return;
+            }
+            foreach(string folder in Directory.GetDirectories(GameInfos.ModSourcePath))
+            {
+                string name = folder.Split("/")[^1];
+                ModFile modFile = new(Path.Combine(GameInfos.ModPath, name + ".rpgmod"));
+                List<string> files = new();
+                Utils_IO.FindFiles(files, folder, s => true);
+                files.ForEach(file =>
                 {
-                    ModFile modFile = new ModFile(fileName, null, null);
-                    using (modFile.Open())
+                    modFile.AddFile(File.ReadAllBytes(file), file.Replace(folder, ""));
+                });
+                modFile.Save();
+            }
+        }
+        private static void LoadMod(ModFile modFile)
+        {
+            using (modFile.Open())
+            {
+                if (modFile.RequestGameVersion is not null && modFile.RequestGameVersion != GameInfos.GameVersion)
+                {
+                    throw new Exception($"This module must run in the specified version:{modFile.RequestGameVersion} of the game");
+                }
+                Mod mod = new()
+                {
+                    Name = modFile.Name,
+                    DisplayName = modFile.DisplayName,
+                    Version = modFile.ModVersion
+                };
+                if (modFile.TryGetFileBytes($"{mod.Name}_Settings.rpgdata", out byte[] settingsbytes))
+                {
+
+                }
+                if (modFile.TryGetFileBytes($"{mod.Name}.dll", out byte[] dllbytes))
+                {
+                    Assembly assembly = Assembly.Load(dllbytes);
+                    assembly.GetTypes().ForEach(type =>
                     {
-                        mod = new LocalMod(modFile)
+                        if(type is IModType)
                         {
-                            lastModified = lastModified
-                        };
-                    }
+                            LoadModType(type, mod);
+                        }
+                    });
                 }
-                catch (Exception e)
+                else
                 {
-                    if (!readFailures.Contains(fileName))
-                    {
-                        Logger.Warn("Failed to read " + fileName, e);
-                    }
-                    else
-                    {
-                        readFailures.Add(fileName);
-                    }
-                    return false;
+                    throw new IOException($"Critical data loss:{modFile.Name}.dll");
                 }
-                modsDirCache[fileName] = mod;
+                LoadedMods[mod.Name] = mod;
             }
-            if (names.Add(mod.Name))
+        }
+        private static void LoadModType(Type modtype, Mod mod)
+        {
+            IModType type = (IModType)Activator.CreateInstance(modtype);
+            if (type.IsLoading)
             {
-                mods.Add(mod);
+                type.Mod = mod;
+                if(type is Item item)
+                {
+                    ModLoader<Item>.Load(item);
+                }
+                else if(type is NPC npc)
+                {
+                    ModLoader<NPC>.Load(npc);
+                }
             }
-            return true;
         }
     }
 }

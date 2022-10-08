@@ -7,7 +7,7 @@ using RPG;
 
 namespace RPG.NPCs
 {
-    public class BloodDevil : NPC
+    public class BloodDevil : RPGNPC
     {
         public override void SetStaticDefaults()
         {

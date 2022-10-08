@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RPG.NPCs
 {
-    public class WoodenStatue : NPC
+    public class WoodenStatue : RPGNPC
     {
         public override void SetStaticDefaults()
         {

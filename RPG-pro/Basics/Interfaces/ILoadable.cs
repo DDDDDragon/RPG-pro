@@ -6,12 +6,10 @@ using System.Threading.Tasks;
 
 namespace RPG_pro.Basics.Interfaces
 {
-    public interface ILoadable : IDisposable
+    public interface ILoadable
     {
-        string Name { get; }
-        string FullName { get; }
-        void Load();
-        void Unload();
-        bool IsLoading();
+        virtual void Load() { }
+        virtual void Unload() { }
+        abstract bool IsLoading { get; }
     }
 }

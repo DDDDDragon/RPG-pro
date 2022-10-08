@@ -18,12 +18,12 @@ namespace RPG
             foreach (var i in types)
             {
                 var obj = Activator.CreateInstance(i);
-                (obj as NPC).SetStaticDefaults();
-                (obj as NPC).SetDefaults();
-                NPCList.Add((int)(i.GetField("NPCType").GetValue(obj)), obj as NPC);
+                (obj as RPGNPC).SetStaticDefaults();
+                (obj as RPGNPC).SetDefaults();
+                NPCList.Add((int)(i.GetField("NPCType").GetValue(obj)), obj as RPGNPC);
             }
         }
-        public static Dictionary<int, NPC> NPCList = new Dictionary<int, NPC>();
+        public static Dictionary<int, RPGNPC> NPCList = new Dictionary<int, RPGNPC>();
 
     }
     public class ItemLoader
@@ -62,7 +62,7 @@ namespace RPG
                 foreach (var type in types)
                 {
                     if (type.IsSubclassOf(typeof(Item))) LoadItem(type);
-                    if (type.IsSubclassOf(typeof(NPC))) LoadNPC(type);
+                    if (type.IsSubclassOf(typeof(RPGNPC))) LoadNPC(type);
                     if (type.IsSubclassOf(typeof(RPGMod)))
                     {
                         var mod = Activator.CreateInstance(type) as RPGMod;
@@ -74,7 +74,7 @@ namespace RPG
         }
         public static T GetInstance<T>() where T : class => ContentInstance<T>.Instance;
         public static int ItemType<T>() where T : Item => GetInstance<T>()?.itemType ?? 0;
-        public static int NPCType<T>() where T : NPC => GetInstance<T>()?.NPCType ?? 0;
+        public static int NPCType<T>() where T : RPGNPC => GetInstance<T>()?.NPCType ?? 0;
         public static void LoadMods()
         {
             string dir = Directory.GetCurrentDirectory();
@@ -88,7 +88,7 @@ namespace RPG
         }
         public static void LoadNPC(Type NPCType)
         {
-            var obj = Activator.CreateInstance(NPCType) as NPC;
+            var obj = Activator.CreateInstance(NPCType) as RPGNPC;
             obj.NPCType = NPCLoader.NPCList.Count + 1;
             obj.SetDefaults();
             Type type = typeof(ContentInstance<>).MakeGenericType(NPCType);
