@@ -365,7 +365,7 @@ namespace RPG
             UpdateRecipes();
         }
         public bool IsBattle = false;
-        public NPC enemy = new NPC();
+        public RPGNPC enemy = new RPGNPC();
         public static Random rand = new Random();
         public List<Recipe> availableRecipes = new List<Recipe>();
         public int Point = 0;

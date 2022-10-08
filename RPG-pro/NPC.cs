@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace RPG
 {
-    public class NPC
+    public class RPGNPC
     {
-        public NPC() { }
-        public NPC(string name, int level, int damage, int health, int defense)
+        public RPGNPC() { }
+        public RPGNPC(string name, int level, int damage, int health, int defense)
         {
             this.damage = damage;
             this.defense = defense;
@@ -26,10 +26,10 @@ namespace RPG
             }
             else return false;
         }
-        public NPC Clone()
+        public RPGNPC Clone()
         {
-            NPC npc = new NPC();
-            npc = this.MemberwiseClone() as NPC;
+            RPGNPC npc = new RPGNPC();
+            npc = this.MemberwiseClone() as RPGNPC;
             return npc;
         }
         public virtual void SetStaticDefaults()

@@ -18,12 +18,12 @@ namespace RPG
             foreach (var i in types)
             {
                 var obj = Activator.CreateInstance(i);
-                (obj as NPC).SetStaticDefaults();
-                (obj as NPC).SetDefaults();
-                NPCList.Add((int)(i.GetField("NPCType").GetValue(obj)), obj as NPC);
+                (obj as RPGNPC).SetStaticDefaults();
+                (obj as RPGNPC).SetDefaults();
+                NPCList.Add((int)(i.GetField("NPCType").GetValue(obj)), obj as RPGNPC);
             }
         }
-        public static Dictionary<int, NPC> NPCList = new Dictionary<int, NPC>();
+        public static Dictionary<int, RPGNPC> NPCList = new Dictionary<int, RPGNPC>();
 
     }
     public class ItemLoader
@@ -53,7 +53,7 @@ namespace RPG
             Assembly a = Assembly.GetEntryAssembly();
             foreach (var assembly in assemblies)
             {
-                if (assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Mod))).Count() == 0)
+                if (assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(RPGMod))).Count() == 0)
                 {
                     MessageBox.Show("加载错误: " + assembly.GetName().Name + " 此Mod需要一个Mod类");
                     continue;
@@ -62,10 +62,10 @@ namespace RPG
                 foreach (var type in types)
                 {
                     if (type.IsSubclassOf(typeof(Item))) LoadItem(type);
-                    if (type.IsSubclassOf(typeof(NPC))) LoadNPC(type);
-                    if (type.IsSubclassOf(typeof(Mod)))
+                    if (type.IsSubclassOf(typeof(RPGNPC))) LoadNPC(type);
+                    if (type.IsSubclassOf(typeof(RPGMod)))
                     {
-                        var mod = Activator.CreateInstance(type) as Mod;
+                        var mod = Activator.CreateInstance(type) as RPGMod;
                         mod.OnLoad();
                         mods.Add(mod);
                     }
@@ -74,7 +74,7 @@ namespace RPG
         }
         public static T GetInstance<T>() where T : class => ContentInstance<T>.Instance;
         public static int ItemType<T>() where T : Item => GetInstance<T>()?.itemType ?? 0;
-        public static int NPCType<T>() where T : NPC => GetInstance<T>()?.NPCType ?? 0;
+        public static int NPCType<T>() where T : RPGNPC => GetInstance<T>()?.NPCType ?? 0;
         public static void LoadMods()
         {
             string dir = Directory.GetCurrentDirectory();
@@ -88,7 +88,7 @@ namespace RPG
         }
         public static void LoadNPC(Type NPCType)
         {
-            var obj = Activator.CreateInstance(NPCType) as NPC;
+            var obj = Activator.CreateInstance(NPCType) as RPGNPC;
             obj.NPCType = NPCLoader.NPCList.Count + 1;
             obj.SetDefaults();
             Type type = typeof(ContentInstance<>).MakeGenericType(NPCType);
@@ -108,13 +108,13 @@ namespace RPG
             ItemLoader.ItemList.Add((int)(ItemType.GetField("itemType").GetValue(obj)), obj);
             if (obj.AddRecipe().Item1) ItemLoader.Recipes.Add(obj.AddRecipe().Item2);
         }
-        public static List<Mod> mods = new List<Mod>();
+        public static List<RPGMod> mods = new List<RPGMod>();
     }
     public static class ContentInstance<T> where T : class
     {
         public static T Instance { get; private set; }
     }
-    public class Mod
+    public class RPGMod
     {
         public string DisplayName = Assembly.GetEntryAssembly().GetName().Name;
         public virtual void OnLoad()
@@ -128,7 +128,7 @@ namespace RPG
     }
     public class ModUI
     {
-        public static void AppendModForm(Mod mod, ModForm modForm)
+        public static void AppendModForm(RPGMod mod, ModForm modForm)
         {
             modForms.Add((modForm, ModLoader.mods.FindIndex(m => m.GetType() == mod.GetType())));
         }
