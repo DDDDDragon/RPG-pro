@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RPG_pro.Basics.Mods;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace RPG
             NPCLoader.Load();
             ItemLoader.Load();
             ModLoader.Load();
+            ModContent.PackegMods();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new GameForm());

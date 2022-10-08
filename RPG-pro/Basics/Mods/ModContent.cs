@@ -61,7 +61,7 @@ namespace RPG_pro.Basics.Mods
             }
             foreach(string folder in Directory.GetDirectories(GameInfos.ModSourcePath))
             {
-                string name = folder.Split("/")[^1];
+                string name = folder.Split("\\")[^1];
                 ModFile modFile = new(Path.Combine(GameInfos.ModPath, name + ".rpgmod"));
                 List<string> files = new();
                 Utils_IO.FindFiles(files, folder, s => true);
